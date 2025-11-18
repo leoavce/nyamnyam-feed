@@ -1,9 +1,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
 import {
   getAuth,
   onAuthStateChanged,
-  signOut
+  signOut,
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import {
   getFirestore,
@@ -11,15 +10,15 @@ import {
   addDoc,
   getDocs,
   getDoc,
-  setDoc,
   doc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
   query,
   where,
   orderBy,
-  serverTimestamp
+  serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-// -------------------- Firebase 초기화 --------------------
 
 const firebaseConfig = {
   apiKey: "AIzaSyBO9tShfmq6MM6V0igKmIuUkg-U_9sW13g",
@@ -28,706 +27,810 @@ const firebaseConfig = {
   storageBucket: "matjip-jido-a6020.firebasestorage.app",
   messagingSenderId: "794785619474",
   appId: "1:794785619474:web:06b7e2d25088742fea42cb",
-  measurementId: "G-YZBYZX7G7B"
+  measurementId: "G-YZBYZX7G7B",
 };
 
 const app = initializeApp(firebaseConfig);
-let analytics;
-try {
-  analytics = getAnalytics(app);
-} catch (e) {
-  // GitHub Pages 환경 등에서는 analytics가 동작 안 해도 괜찮으니 무시
-}
-
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// -------------------- DOM 요소 --------------------
+// ---- 상태 ----
+let currentUser = null;
+let currentUserProfile = null;
 
-const feedEl = document.getElementById("feed");
-const nicknameLabelEl = document.getElementById("nicknameLabel");
-const searchInputEl = document.getElementById("searchInput");
-const tagFilterButtons = document.querySelectorAll(".tag-filter-btn");
+let restaurants = [];
+let filteredRestaurants = [];
+let selectedRestaurantId = null;
+let currentReviews = [];
+let selectedRating = 0;
+let editingReviewId = null;
 
-const addRestaurantBtn = document.getElementById("addRestaurantBtn");
-const addRestaurantModal = document.getElementById("addRestaurantModal");
-const closeAddRestaurantModalBtn = document.getElementById("closeAddRestaurantModal");
-const cancelAddRestaurantBtn = document.getElementById("cancelAddRestaurant");
-const addRestaurantForm = document.getElementById("addRestaurantForm");
-
-const logoutBtn = document.getElementById("logoutBtn");
-
+// ---- DOM ----
 const toastEl = document.getElementById("toast");
 
-// -------------------- 전역 상태 --------------------
+const searchInput = document.getElementById("searchInput");
+const restaurantListEl = document.getElementById("restaurantList");
+const emptyStateEl = document.getElementById("emptyState");
 
-let currentUser = null;
-let currentNickname = null;
-let restaurantsCache = []; // { restaurant, reviews }
-let currentCategoryFilter = "all";
-let currentSearchQuery = "";
+const addRestaurantBtn = document.getElementById("addRestaurantBtn");
+const userProfileBtn = document.getElementById("userProfileBtn");
+const userNicknameLabel = document.getElementById("userNicknameLabel");
+const logoutBtn = document.getElementById("logoutBtn");
 
-// -------------------- 유틸 --------------------
+// 모달들
+const restaurantModal = document.getElementById("restaurantModal");
+const restaurantModalTitle = document.getElementById("restaurantModalTitle");
+const restaurantForm = document.getElementById("restaurantForm");
+const restaurantIdField = document.getElementById("restaurantIdField");
 
+const closeRestaurantModalBtn = document.getElementById(
+  "closeRestaurantModalBtn"
+);
+const cancelRestaurantBtn = document.getElementById("cancelRestaurantBtn");
+
+// 상세 모달
+const detailModal = document.getElementById("detailModal");
+const closeDetailModalBtn = document.getElementById("closeDetailModalBtn");
+
+const detailNameEl = document.getElementById("detailName");
+const detailAvgRatingEl = document.getElementById("detailAvgRating");
+const detailReviewCountEl = document.getElementById("detailReviewCount");
+const editRestaurantBtn = document.getElementById("editRestaurantBtn");
+const deleteRestaurantBtn = document.getElementById("deleteRestaurantBtn");
+
+const detailLocationEl = document.getElementById("detailLocation");
+const detailFriendlyLocationEl = document.getElementById(
+  "detailFriendlyLocation"
+);
+const detailMainMenuEl = document.getElementById("detailMainMenu");
+const detailVibeEl = document.getElementById("detailVibe");
+const detailWaitingEl = document.getElementById("detailWaiting");
+const detailSmellEl = document.getElementById("detailSmell");
+const detailPriceRangeEl = document.getElementById("detailPriceRange");
+const detailTagsEl = document.getElementById("detailTags");
+const detailHashtagsEl = document.getElementById("detailHashtags");
+const detailLinkAreaEl = document.getElementById("detailLinkArea");
+
+const feedListEl = document.getElementById("feedList");
+const ratingSelectorEl = document.getElementById("ratingSelector");
+const reviewTextInput = document.getElementById("reviewTextInput");
+const submitReviewBtn = document.getElementById("submitReviewBtn");
+const cancelEditReviewBtn = document.getElementById("cancelEditReviewBtn");
+
+const statsAvgRatingEl = document.getElementById("statsAvgRating");
+const statsReviewCountEl = document.getElementById("statsReviewCount");
+const statsSummaryTextEl = document.getElementById("statsSummaryText");
+
+const mapFrame = document.getElementById("mapFrame");
+const openMapExternalBtn = document.getElementById("openMapExternalBtn");
+
+const detailTabButtons = document.querySelectorAll(".detail-tab-button");
+const detailTabPanels = document.querySelectorAll(".detail-tab-panel");
+
+// ---- 유틸 ----
 function showToast(message, duration = 2000) {
   toastEl.textContent = message;
   toastEl.classList.remove("hidden");
-  setTimeout(() => {
-    toastEl.classList.add("hidden");
-  }, duration);
+  setTimeout(() => toastEl.classList.add("hidden"), duration);
 }
 
-function parseHashtags(input) {
-  if (!input) return [];
-  return input
-    .split(",")
-    .map((tag) => tag.trim())
-    .filter((tag) => tag.length > 0)
-    .map((tag) => (tag.startsWith("#") ? tag : `#${tag}`));
+function splitToArray(str, { removeHash = false } = {}) {
+  if (!str) return [];
+  return str
+    .split(/[,\s]+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0)
+    .map((s) => {
+      if (removeHash && s.startsWith("#")) return s.slice(1);
+      return s;
+    });
 }
 
-function formatCategoryLabel(category) {
-  switch (category) {
-    case "korean":
-      return "한식";
-    case "chinese":
-      return "중식";
-    case "japanese":
-      return "일식";
-    case "western":
-      return "양식";
-    case "seasia":
-      return "동남아";
-    case "cafe":
-      return "카페";
-    case "bar":
-      return "술집";
-    default:
-      return category || "기타";
-  }
-}
-
-function calculateRatingStats(reviews) {
-  if (!reviews || reviews.length === 0) {
-    return {
-      avg: null,
-      count: 0,
-      distribution: {}
-    };
-  }
-  const distribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-  let sum = 0;
-  reviews.forEach((r) => {
-    const rating = Number(r.rating || 0);
-    if (rating >= 1 && rating <= 5) {
-      sum += rating;
-      distribution[rating] += 1;
-    }
-  });
-  const count = reviews.length;
-  const avg = sum / count;
-  return { avg, count, distribution };
-}
-
-// -------------------- 인증 --------------------
-
-// users/{uid} 문서에서 닉네임 읽기 (없으면 이메일 앞부분 사용)
-async function loadUserProfile(user) {
-  let nickname = null;
-  try {
-    const userDocRef = doc(db, "users", user.uid);
-    const snap = await getDoc(userDocRef);
-    if (snap.exists()) {
-      const data = snap.data();
-      nickname = data.nickname || null;
-    }
-  } catch (e) {
-    console.warn("loadUserProfile error", e);
-  }
-
-  if (!nickname) {
-    nickname = user.email
-      ? user.email.split("@")[0]
-      : `user-${user.uid.slice(0, 6)}`;
-  }
-
-  currentNickname = nickname;
-  if (nicknameLabelEl) {
-    nicknameLabelEl.textContent = nickname;
-  }
-}
-
-function initAuth() {
-  onAuthStateChanged(auth, async (user) => {
-    if (!user) {
-      // 로그인 안 되어 있으면 로그인 페이지로 이동
-      window.location.href = "login.html";
-      return;
-    }
-    currentUser = user;
-    await loadUserProfile(user);
-    loadRestaurants();
+function formatDate(ts) {
+  if (!ts) return "-";
+  const d = ts.toDate ? ts.toDate() : ts;
+  return d.toLocaleString("ko-KR", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 }
 
-// -------------------- 데이터 로딩 --------------------
+function formatRating(value) {
+  if (value == null || isNaN(value)) return "-";
+  return Number(value).toFixed(1);
+}
 
+// ---- 인증 처리 ----
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    window.location.href = "login.html";
+    return;
+  }
+  currentUser = user;
+
+  // 프로필 불러오기
+  const userDoc = await getDoc(doc(db, "users", user.uid));
+  if (userDoc.exists()) {
+    currentUserProfile = userDoc.data();
+  } else {
+    currentUserProfile = { email: user.email, nickname: user.email };
+    await setDoc(doc(db, "users", user.uid), {
+      nickname: currentUserProfile.nickname,
+      email: user.email,
+      createdAt: serverTimestamp(),
+    });
+  }
+  userNicknameLabel.textContent =
+    currentUserProfile.nickname || currentUser.email;
+
+  await loadRestaurants();
+});
+
+// ---- 데이터 로딩 ----
 async function loadRestaurants() {
-  try {
-    const q = query(
-      collection(db, "restaurants"),
-      orderBy("createdAt", "desc")
-    );
-    const snap = await getDocs(q);
-    const results = [];
-    for (const docSnap of snap.docs) {
-      const restaurant = { id: docSnap.id, ...docSnap.data() };
-
-      const reviewQ = query(
-        collection(db, "reviews"),
-        where("restaurantId", "==", restaurant.id),
-        orderBy("createdAt", "desc")
-      );
-      const reviewSnap = await getDocs(reviewQ);
-      const reviews = reviewSnap.docs.map((r) => ({
-        id: r.id,
-        ...r.data()
-      }));
-      results.push({ restaurant, reviews });
-    }
-    restaurantsCache = results;
-    renderFeed();
-  } catch (e) {
-    console.error(e);
-    showToast("맛집 목록을 불러오는 중 오류가 발생했어요.");
-  }
+  const q = query(
+    collection(db, "restaurants"),
+    orderBy("createdAt", "desc")
+  );
+  const snap = await getDocs(q);
+  restaurants = snap.docs.map((docSnap) => ({
+    id: docSnap.id,
+    ...docSnap.data(),
+  }));
+  filteredRestaurants = restaurants;
+  renderRestaurantList();
 }
 
-// -------------------- 렌더링 --------------------
+// ---- 렌더링 ----
+function renderRestaurantList() {
+  restaurantListEl.innerHTML = "";
 
-function renderFeed() {
-  feedEl.innerHTML = "";
+  if (!filteredRestaurants || filteredRestaurants.length === 0) {
+    emptyStateEl.classList.remove("hidden");
+    return;
+  }
+  emptyStateEl.classList.add("hidden");
 
-  const filtered = restaurantsCache.filter(({ restaurant, reviews }) => {
-    if (
-      currentCategoryFilter !== "all" &&
-      restaurant.category !== currentCategoryFilter
-    ) {
-      return false;
-    }
+  filteredRestaurants.forEach((r) => {
+    const card = document.createElement("article");
+    card.className = "restaurant-card";
+    card.dataset.id = r.id;
 
-    if (!currentSearchQuery) return true;
+    const avg = r.avgRating ?? null;
+    const reviewCount = r.reviewCount ?? 0;
 
-    const q = currentSearchQuery.toLowerCase();
+    const tags = r.tags || [];
+    const hashtags = r.hashtags || [];
 
-    if (q.startsWith("#")) {
-      const tag = q;
-      const mainTags = (restaurant.mainHashtags || []).map((t) =>
-        t.toLowerCase()
-      );
-      const reviewTags = reviews.flatMap((r) =>
-        (r.hashtags || []).map((t) => t.toLowerCase())
-      );
-      return (
-        mainTags.some((t) => t.includes(tag)) ||
-        reviewTags.some((t) => t.includes(tag))
-      );
-    }
+    card.innerHTML = `
+      <div class="card-header-row">
+        <h3 class="card-title">${r.name || "이름 없음"}</h3>
+        <div class="card-rating">
+          <span class="card-stars">★ ${avg ? formatRating(avg) : "-"}</span>
+          <span class="card-reviews">(${reviewCount || 0} 리뷰)</span>
+        </div>
+      </div>
+      <div class="card-sub">
+        <i class="fa fa-location-dot"></i>
+        <span class="card-location">
+          ${r.friendlyLocation || r.location || "-"}
+        </span>
+      </div>
+      <div class="card-tags-row">
+        ${tags
+          .map(
+            (t) =>
+              `<span class="chip chip-tag">${t.trim()}</span>`
+          )
+          .join("")}
+        ${hashtags
+          .slice(0, 3)
+          .map(
+            (h) =>
+              `<span class="chip chip-hash">#${h.replace(
+                /^#/,
+                ""
+              )}</span>`
+          )
+          .join("")}
+      </div>
+      <button class="card-open-btn" type="button">
+        상세 보기
+      </button>
+    `;
 
-    const targetText = [
-      restaurant.name,
-      restaurant.positionDescription,
-      restaurant.mainMenu
-    ]
-      .filter(Boolean)
-      .join(" ")
-      .toLowerCase();
+    card
+      .querySelector(".card-open-btn")
+      .addEventListener("click", () => openDetailModal(r.id));
 
-    return targetText.includes(q);
+    restaurantListEl.appendChild(card);
   });
+}
 
-  if (filtered.length === 0) {
-    const emptyEl = document.createElement("div");
-    emptyEl.className = "empty-state";
-    emptyEl.textContent =
-      "조건에 맞는 맛집이 아직 없어요. 첫 번째 맛집을 추가해볼까요?";
-    feedEl.appendChild(emptyEl);
+// ---- 검색 ----
+function handleSearch() {
+  const keyword = searchInput.value.trim().toLowerCase();
+  if (!keyword) {
+    filteredRestaurants = restaurants;
+    renderRestaurantList();
     return;
   }
 
-  filtered.forEach(({ restaurant, reviews }) => {
-    const card = createRestaurantCard(restaurant, reviews);
-    feedEl.appendChild(card);
+  filteredRestaurants = restaurants.filter((r) => {
+    const name = (r.name || "").toLowerCase();
+    const tags = (r.tags || []).join(" ").toLowerCase();
+    const hashes = (r.hashtags || [])
+      .map((h) => (h || "").toLowerCase())
+      .join(" ");
+    return (
+      name.includes(keyword) ||
+      tags.includes(keyword) ||
+      hashes.includes(keyword.replace(/^#/, ""))
+    );
+  });
+
+  renderRestaurantList();
+}
+
+// ---- 모달 공통 ----
+function openRestaurantModalForCreate() {
+  restaurantModalTitle.textContent = "맛집 추가하기";
+  restaurantIdField.value = "";
+
+  restaurantForm.reset();
+  restaurantModal.classList.remove("hidden");
+}
+
+function openRestaurantModalForEdit(restaurant) {
+  restaurantModalTitle.textContent = "맛집 정보 편집";
+  restaurantIdField.value = restaurant.id;
+
+  document.getElementById("nameInput").value = restaurant.name || "";
+  document.getElementById("locationInput").value =
+    restaurant.location || "";
+  document.getElementById("friendlyLocationInput").value =
+    restaurant.friendlyLocation || "";
+  document.getElementById("mainMenuInput").value =
+    restaurant.mainMenu || "";
+  document.getElementById("vibeInput").value = restaurant.vibe || "";
+  document.getElementById("waitingInput").value =
+    restaurant.waiting || "";
+  document.getElementById("smellInput").value = restaurant.smell || "";
+  document.getElementById("priceRangeInput").value =
+    restaurant.priceRange || "";
+  document.getElementById("tagsInput").value = (restaurant.tags || []).join(
+    ", "
+  );
+  document.getElementById("hashtagsInput").value = (restaurant.hashtags || [])
+    .map((h) => `#${h}`)
+    .join(" ");
+  document.getElementById("imageUrlInput").value =
+    restaurant.imageUrl || "";
+
+  restaurantModal.classList.remove("hidden");
+}
+
+function closeRestaurantModal() {
+  restaurantModal.classList.add("hidden");
+}
+
+// 상세 모달
+function openDetailModal(id) {
+  const restaurant = restaurants.find((r) => r.id === id);
+  if (!restaurant) return;
+
+  selectedRestaurantId = id;
+  detailNameEl.textContent = restaurant.name || "이름 없음";
+
+  const avg = restaurant.avgRating ?? null;
+  const reviewCount = restaurant.reviewCount ?? 0;
+
+  detailAvgRatingEl.textContent = `★ ${
+    avg ? formatRating(avg) : "-"
+  }`;
+  detailReviewCountEl.textContent = `(리뷰 ${reviewCount || 0}개)`;
+
+  detailLocationEl.textContent = restaurant.location || "-";
+  detailFriendlyLocationEl.textContent =
+    restaurant.friendlyLocation || "";
+
+  detailMainMenuEl.textContent = restaurant.mainMenu || "-";
+  detailVibeEl.textContent = restaurant.vibe || "-";
+  detailWaitingEl.textContent = restaurant.waiting || "-";
+  detailSmellEl.textContent = restaurant.smell || "-";
+  detailPriceRangeEl.textContent = restaurant.priceRange || "-";
+
+  // 태그/해시태그
+  detailTagsEl.innerHTML = "";
+  (restaurant.tags || []).forEach((t) => {
+    const span = document.createElement("span");
+    span.className = "chip chip-tag";
+    span.textContent = t;
+    detailTagsEl.appendChild(span);
+  });
+
+  detailHashtagsEl.innerHTML = "";
+  (restaurant.hashtags || []).forEach((h) => {
+    const span = document.createElement("span");
+    span.className = "chip chip-hash";
+    span.textContent = `#${h.replace(/^#/, "")}`;
+    detailHashtagsEl.appendChild(span);
+  });
+
+  // 링크
+  detailLinkAreaEl.innerHTML = "";
+  if (restaurant.imageUrl) {
+    const a = document.createElement("a");
+    a.href = restaurant.imageUrl;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    a.textContent = "링크 열기";
+    detailLinkAreaEl.appendChild(a);
+  } else {
+    detailLinkAreaEl.textContent = "등록된 링크가 없어요.";
+  }
+
+  // Map
+  const locationForMap =
+    restaurant.location || restaurant.friendlyLocation || "";
+  if (locationForMap) {
+    const encoded = encodeURIComponent(locationForMap);
+    mapFrame.src = `https://www.google.com/maps?q=${encoded}&output=embed`;
+    openMapExternalBtn.onclick = () => {
+      window.open(
+        `https://www.google.com/maps/search/?api=1&query=${encoded}`,
+        "_blank"
+      );
+    };
+  } else {
+    mapFrame.src = "";
+    openMapExternalBtn.onclick = null;
+  }
+
+  // 편집/삭제 버튼 노출 여부
+  if (currentUser && restaurant.creatorUID === currentUser.uid) {
+    editRestaurantBtn.classList.remove("hidden");
+    deleteRestaurantBtn.classList.remove("hidden");
+  } else {
+    editRestaurantBtn.classList.add("hidden");
+    deleteRestaurantBtn.classList.add("hidden");
+  }
+
+  // 탭 초기화
+  setActiveTab("info");
+
+  // 리뷰/통계 로딩
+  loadReviews(id);
+
+  detailModal.classList.remove("hidden");
+}
+
+function closeDetailModal() {
+  detailModal.classList.add("hidden");
+  selectedRestaurantId = null;
+  currentReviews = [];
+  editingReviewId = null;
+  selectedRating = 0;
+  updateRatingSelector();
+  reviewTextInput.value = "";
+  cancelEditReviewBtn.classList.add("hidden");
+}
+
+// ---- 탭 ----
+function setActiveTab(tabName) {
+  detailTabButtons.forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.tab === tabName);
+  });
+  detailTabPanels.forEach((panel) => {
+    panel.classList.toggle(
+      "active",
+      panel.dataset.tabPanel === tabName
+    );
   });
 }
 
-function createRestaurantCard(restaurant, reviews) {
-  const { avg, count, distribution } = calculateRatingStats(reviews);
-  const categoryLabel = formatCategoryLabel(restaurant.category);
-  const mainHashtags = restaurant.mainHashtags || [];
+// ---- 맛집 저장/삭제 ----
+restaurantForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (!currentUser) {
+    showToast("다시 로그인 해주세요.");
+    return;
+  }
 
-  const card = document.createElement("article");
-  card.className = "restaurant-card";
-  card.dataset.id = restaurant.id;
+  const id = restaurantIdField.value || null;
 
-  const infoHTML = `
-    <div class="tab-pane active">
-      <div class="info-grid">
-        <div>
-          <div class="info-label">대표 메뉴</div>
-          <div class="info-value">${restaurant.mainMenu || "-"}</div>
-        </div>
-        <div>
-          <div class="info-label">분위기</div>
-          <div class="info-value">${restaurant.mood || "-"}</div>
-        </div>
-        <div>
-          <div class="info-label">웨이팅</div>
-          <div class="info-value">${
-            restaurant.waitingLevel
-              ? restaurant.waitingLevel === "low"
-                ? "적음"
-                : restaurant.waitingLevel === "medium"
-                  ? "보통"
-                  : "많음"
-              : "-"
-          }</div>
-        </div>
-        <div>
-          <div class="info-label">냄새</div>
-          <div class="info-value">${
-            restaurant.smellLevel
-              ? restaurant.smellLevel === "none"
-                ? "거의 안 밈"
-                : restaurant.smellLevel === "normal"
-                  ? "보통"
-                  : "잘 밈"
-              : "-"
-          }</div>
-        </div>
-        <div>
-          <div class="info-label">가격대</div>
-          <div class="info-value">${restaurant.priceLevel || "-"}</div>
-        </div>
-        <div>
-          <div class="info-label">대표 해시태그</div>
-          <div class="info-value">
-            ${
-              mainHashtags.length
-                ? mainHashtags
-                    .map((t) => `<span class="tag-badge">${t}</span>`)
-                    .join(" ")
-                : "-"
-            }
-          </div>
-        </div>
-      </div>
-      ${
-        restaurant.imageUrl
-          ? `
-      <div class="info-image-preview">
-        <div class="info-label">이미지 미리보기</div>
-        <a href="${restaurant.imageUrl}" target="_blank" rel="noopener noreferrer">
-          <img src="${restaurant.imageUrl}" alt="${restaurant.name} 이미지" />
-        </a>
-      </div>
-      `
-          : ""
-      }
-    </div>
-  `;
+  const name = document.getElementById("nameInput").value.trim();
+  const location = document
+    .getElementById("locationInput")
+    .value.trim();
+  const friendlyLocation = document
+    .getElementById("friendlyLocationInput")
+    .value.trim();
+  const mainMenu = document.getElementById("mainMenuInput").value.trim();
+  const vibe = document.getElementById("vibeInput").value.trim();
+  const waiting = document.getElementById("waitingInput").value.trim();
+  const smell = document.getElementById("smellInput").value.trim();
+  const priceRange = document
+    .getElementById("priceRangeInput")
+    .value.trim();
+  const tags = splitToArray(
+    document.getElementById("tagsInput").value
+  );
+  const hashtags = splitToArray(
+    document.getElementById("hashtagsInput").value,
+    { removeHash: true }
+  );
+  const imageUrl = document
+    .getElementById("imageUrlInput")
+    .value.trim();
 
-  const reviewsHTML =
-    reviews.length === 0
-      ? `<p class="empty-reviews" style="font-size:12px;color:#888;">아직 후기가 없어요. 첫 후기를 남겨볼까요?</p>`
-      : `
-      <div class="review-list">
-        ${reviews
-          .map((r) => {
-            const tags = r.hashtags || [];
-            return `
-            <article class="review-item">
-              <div class="review-header">
-                <span class="review-nickname">${r.nickname || "익명"}</span>
-                <span class="review-rating">⭐ ${r.rating}</span>
-              </div>
-              <div class="review-comment">${(r.comment || "").replace(
-                /\n/g,
-                "<br />"
-              )}</div>
-              ${
-                tags.length
-                  ? `<div class="review-tags">
-                      ${tags
-                        .map((t) => `<span class="review-tag">${t}</span>`)
-                        .join(" ")}
-                    </div>`
-                  : ""
-              }
-              ${
-                r.imageUrl
-                  ? `<div class="review-image">
-                      <a href="${r.imageUrl}" target="_blank" rel="noopener noreferrer">
-                        <img src="${r.imageUrl}" alt="리뷰 이미지" />
-                      </a>
-                    </div>`
-                  : ""
-              }
-            </article>
-          `;
-          })
-          .join("")}
-      </div>
-  `;
+  if (!name || !location) {
+    showToast("가게 이름과 위치는 필수입니다.");
+    return;
+  }
 
-  const feedTabHTML = `
-    <div class="tab-pane">
-      ${reviewsHTML}
-      <form class="add-review-form" data-restaurant-id="${restaurant.id}">
-        <div class="add-review-form-row">
-          <select name="rating" required>
-            <option value="">별점</option>
-            <option value="5">⭐⭐⭐⭐⭐ (5)</option>
-            <option value="4">⭐⭐⭐⭐ (4)</option>
-            <option value="3">⭐⭐⭐ (3)</option>
-            <option value="2">⭐⭐ (2)</option>
-            <option value="1">⭐ (1)</option>
-          </select>
-          <input type="url" name="imageUrl" placeholder="이미지 URL (선택)" />
-        </div>
-        <textarea name="comment" placeholder="후기를 남겨주세요" required></textarea>
-        <input
-          type="text"
-          name="hashtags"
-          placeholder="#점심맛집, #회식굿 (쉼표로 구분)"
-        />
-        <div class="add-review-footer">
-          <button type="submit" class="primary-btn" style="font-size:11px;padding:5px 10px;">
-            후기 등록
-          </button>
-        </div>
-      </form>
-    </div>
-  `;
+  const payload = {
+    name,
+    location,
+    friendlyLocation,
+    mainMenu,
+    vibe,
+    waiting,
+    smell,
+    priceRange,
+    tags,
+    hashtags,
+    imageUrl,
+  };
 
-  const statsTabHTML = `
-    <div class="tab-pane">
-      <div class="stats-grid">
-        <div class="stats-card">
-          <div class="stats-card-title">평균 별점</div>
-          <div class="info-value">
-            ${
-              avg
-                ? `⭐ ${avg.toFixed(1)} <span style="font-size:11px;color:#999;">(${count}개)</span>`
-                : "아직 없음"
-            }
-          </div>
-        </div>
-        <div class="stats-card">
-          <div class="stats-card-title">별점 분포</div>
-          <div class="info-value">
-            ${[5, 4, 3, 2, 1]
-              .map((score) => `${score}★: ${distribution[score] || 0}`)
-              .join("<br />")}
-          </div>
-        </div>
-        <div class="stats-card">
-          <div class="stats-card-title">카테고리</div>
-          <div class="info-value">${categoryLabel}</div>
-        </div>
-      </div>
-    </div>
-  `;
+  try {
+    if (id) {
+      // update
+      const ref = doc(db, "restaurants", id);
+      await updateDoc(ref, payload);
+      showToast("맛집 정보가 수정되었습니다.");
+    } else {
+      // create
+      const ref = collection(db, "restaurants");
+      await addDoc(ref, {
+        ...payload,
+        creatorUID: currentUser.uid,
+        creatorNickname:
+          currentUserProfile?.nickname || currentUser.email,
+        createdAt: serverTimestamp(),
+        avgRating: null,
+        reviewCount: 0,
+      });
+      showToast("맛집이 추가되었습니다.");
+    }
+    closeRestaurantModal();
+    await loadRestaurants();
+  } catch (err) {
+    console.error(err);
+    showToast("저장 중 오류가 발생했습니다.");
+  }
+});
 
-  const mapTabHTML = `
-    <div class="tab-pane">
-      <div class="map-section">
-        <div>
-          <div class="info-label">주소</div>
-          <div class="info-value">${restaurant.address || "-"}</div>
+deleteRestaurantBtn.addEventListener("click", async () => {
+  if (!selectedRestaurantId) return;
+  const restaurant = restaurants.find(
+    (r) => r.id === selectedRestaurantId
+  );
+  if (!restaurant) return;
+
+  if (
+    !confirm(
+      `"${restaurant.name}" 맛집 정보를 삭제할까요?\n연결된 리뷰도 함께 지우는 것이 좋습니다.`
+    )
+  ) {
+    return;
+  }
+
+  try {
+    // 리뷰 함께 삭제
+    const reviewsRef = collection(db, "reviews");
+    const q = query(
+      reviewsRef,
+      where("restaurantId", "==", selectedRestaurantId)
+    );
+    const snap = await getDocs(q);
+    const batchDeletes = snap.docs.map((d) =>
+      deleteDoc(doc(db, "reviews", d.id))
+    );
+    await Promise.all(batchDeletes);
+
+    await deleteDoc(doc(db, "restaurants", selectedRestaurantId));
+
+    showToast("맛집이 삭제되었습니다.");
+    closeDetailModal();
+    await loadRestaurants();
+  } catch (err) {
+    console.error(err);
+    showToast("삭제 중 오류가 발생했습니다.");
+  }
+});
+
+editRestaurantBtn.addEventListener("click", () => {
+  if (!selectedRestaurantId) return;
+  const restaurant = restaurants.find(
+    (r) => r.id === selectedRestaurantId
+  );
+  if (!restaurant) return;
+  openRestaurantModalForEdit(restaurant);
+});
+
+// ---- 리뷰 ----
+async function loadReviews(restaurantId) {
+  const ref = collection(db, "reviews");
+  const q = query(
+    ref,
+    where("restaurantId", "==", restaurantId),
+    orderBy("createdAt", "desc")
+  );
+
+  const snap = await getDocs(q);
+  currentReviews = snap.docs.map((docSnap) => ({
+    id: docSnap.id,
+    ...docSnap.data(),
+  }));
+  renderReviews();
+  updateStatsFromReviews();
+}
+
+function renderReviews() {
+  feedListEl.innerHTML = "";
+
+  if (!currentReviews || currentReviews.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "feed-empty";
+    empty.textContent =
+      "아직 리뷰가 없어요. 첫 번째 리뷰를 남겨볼까요?";
+    feedListEl.appendChild(empty);
+    return;
+  }
+
+  currentReviews.forEach((r) => {
+    const item = document.createElement("article");
+    item.className = "feed-item";
+
+    const isMine =
+      currentUser && r.userUID === currentUser.uid;
+
+    const stars = "★".repeat(r.rating || 0).padEnd(5, "☆");
+
+    item.innerHTML = `
+      <div class="feed-item-header">
+        <div class="feed-item-meta">
+          <span class="feed-item-nick">${r.userNickname || "익명"}</span>
+          <span class="feed-item-rating">${stars} (${r.rating || "-"})</span>
+          <span class="feed-item-date">${formatDate(r.createdAt)}</span>
         </div>
-        <div>
-          <div class="info-label">친절한 위치 설명</div>
-          <div class="info-value">${
-            restaurant.positionDescription || "-"
-          }</div>
-        </div>
-        <div class="map-link-row">
+        <div class="feed-item-actions">
           ${
-            restaurant.address
+            isMine
               ? `
-          <a
-            class="secondary-btn"
-            href="https://map.naver.com/v5/search/${encodeURIComponent(
-              restaurant.address
-            )}"
-            target="_blank" rel="noopener noreferrer"
-          >
-            네이버 지도
-          </a>
-          <a
-            class="secondary-btn"
-            href="https://map.kakao.com/?q=${encodeURIComponent(
-              restaurant.address
-            )}"
-            target="_blank" rel="noopener noreferrer"
-          >
-            카카오맵
-          </a>
-          <a
-            class="secondary-btn"
-            href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-              restaurant.address
-            )}"
-            target="_blank" rel="noopener noreferrer"
-          >
-            구글 지도
-          </a>
-          `
-              : "<span style='font-size:12px;color:#888;'>주소 정보가 없어요.</span>"
+              <button class="text-button small edit-review-btn" data-id="${r.id}">
+                수정
+              </button>
+              <button class="text-button small danger delete-review-btn" data-id="${r.id}">
+                삭제
+              </button>
+            `
+              : ""
           }
         </div>
       </div>
-    </div>
-  `;
-
-  card.innerHTML = `
-    <header class="restaurant-header">
-      <div class="restaurant-header-top">
-        <div class="restaurant-title">
-          <h2>${restaurant.name}</h2>
-          <div class="restaurant-subline">
-            ${restaurant.positionDescription || restaurant.address || ""}
-          </div>
-        </div>
-        <div class="restaurant-meta">
-          <div class="rating-pill">
-            <i class="fa fa-star"></i>
-            <span>${avg ? `${avg.toFixed(1)} (${count})` : "별점 없음"}</span>
-          </div>
-          <div class="tag-badges">
-            ${
-              categoryLabel
-                ? `<span class="tag-badge">#${categoryLabel}</span>`
-                : ""
-            }
-          </div>
-        </div>
+      <div class="feed-item-body">
+        ${r.text ? r.text.replace(/\n/g, "<br>") : ""}
       </div>
-    </header>
-    <div class="tabs">
-      <div class="tab-header">
-        <div class="active">
-          <i class="fa fa-info-circle"></i> Info
-        </div>
-        <div>
-          <i class="fa fa-comments"></i> Feed
-        </div>
-        <div>
-          <i class="fa fa-bar-chart"></i> Stats
-        </div>
-        <div>
-          <i class="fa fa-map-marker-alt"></i> Map
-        </div>
-      </div>
-      <div class="tab-indicator"></div>
-      <div class="tab-body">
-        ${infoHTML}
-        ${feedTabHTML}
-        ${statsTabHTML}
-        ${mapTabHTML}
-      </div>
-    </div>
-  `;
+    `;
 
-  initTabsForCard(card);
-
-  const reviewForm = card.querySelector(".add-review-form");
-  reviewForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    if (!currentUser) {
-      showToast("로그인 상태를 확인 중입니다. 다시 시도해주세요.");
-      return;
-    }
-    const formData = new FormData(reviewForm);
-    const rating = formData.get("rating");
-    const comment = formData.get("comment").trim();
-    const imageUrl = formData.get("imageUrl").trim();
-    const hashtagsInput = formData.get("hashtags");
-
-    if (!rating || !comment) {
-      showToast("별점과 후기를 모두 입력해주세요.");
-      return;
+    if (isMine) {
+      item
+        .querySelector(".edit-review-btn")
+        .addEventListener("click", () => startEditReview(r.id));
+      item
+        .querySelector(".delete-review-btn")
+        .addEventListener("click", () => deleteReview(r.id));
     }
 
-    const hashtags = parseHashtags(hashtagsInput);
-
-    try {
-      await addDoc(collection(db, "reviews"), {
-        restaurantId: restaurant.id,
-        userUID: currentUser.uid,
-        nickname: currentNickname || "",
-        rating: Number(rating),
-        comment,
-        imageUrl: imageUrl || null,
-        hashtags,
-        createdAt: serverTimestamp()
-      });
-      showToast("후기가 등록됐어요!");
-      reviewForm.reset();
-      await loadRestaurants();
-    } catch (error) {
-      console.error(error);
-      showToast("후기를 저장하는 중 오류가 발생했어요.");
-    }
+    feedListEl.appendChild(item);
   });
-
-  return card;
 }
 
-function initTabsForCard(cardEl) {
-  const tabHeader = cardEl.getElementsByClassName("tab-header")[0];
-  const tabIndicator = cardEl.getElementsByClassName("tab-indicator")[0];
-  const tabBody = cardEl.getElementsByClassName("tab-body")[0];
+function updateStatsFromReviews() {
+  if (!currentReviews || currentReviews.length === 0) {
+    statsAvgRatingEl.textContent = "-";
+    statsReviewCountEl.textContent = "0개";
+    statsSummaryTextEl.textContent =
+      "리뷰가 쌓이면 전체 분위기를 요약해서 보여줄게요.";
+    return;
+  }
 
-  const tabsPane = tabHeader.getElementsByTagName("div");
-  const tabPanes = tabBody.getElementsByClassName("tab-pane");
+  const total = currentReviews.reduce(
+    (sum, r) => sum + (Number(r.rating) || 0),
+    0
+  );
+  const count = currentReviews.length;
+  const avg = total / count;
 
-  Array.from(tabsPane).forEach((pane, index) => {
-    pane.addEventListener("click", () => {
-      const activeHeader = tabHeader.getElementsByClassName("active")[0];
-      if (activeHeader) activeHeader.classList.remove("active");
-      pane.classList.add("active");
+  statsAvgRatingEl.textContent = formatRating(avg);
+  statsReviewCountEl.textContent = `${count}개`;
 
-      const activeBody = tabBody.getElementsByClassName("active")[0];
-      if (activeBody) activeBody.classList.remove("active");
-      tabPanes[index].classList.add("active");
+  let summary = "";
+  if (avg >= 4.5) summary = "상폄동 최상급 맛집 포스… 재방문 의사 강추!";
+  else if (avg >= 4.0)
+    summary = "대체로 만족도가 높은 편이에요. 점심·저녁 모두 무난한 선택.";
+  else if (avg >= 3.0)
+    summary =
+      "호불호가 조금 있는 편. 특정 메뉴/시간대만 골라서 가는 걸 추천.";
+  else summary = "평가가 좋지 않은 편이에요. 리뷰 내용을 잘 읽어보고 선택하세요.";
 
-      tabIndicator.style.left = `calc(calc(100% / 4) * ${index})`;
+  statsSummaryTextEl.textContent = summary;
+
+  // restaurant 문서에 집계값 저장
+  if (selectedRestaurantId) {
+    updateRestaurantStats(selectedRestaurantId, avg, count);
+  }
+}
+
+async function updateRestaurantStats(restaurantId, avg, count) {
+  try {
+    await updateDoc(doc(db, "restaurants", restaurantId), {
+      avgRating: avg,
+      reviewCount: count,
     });
+
+    // 로컬 캐시에도 반영
+    restaurants = restaurants.map((r) =>
+      r.id === restaurantId ? { ...r, avgRating: avg, reviewCount: count } : r
+    );
+    filteredRestaurants = restaurants;
+    renderRestaurantList();
+  } catch (err) {
+    console.error("update stats error", err);
+  }
+}
+
+// ---- 리뷰 작성/수정/삭제 ----
+function updateRatingSelector() {
+  const buttons = ratingSelectorEl.querySelectorAll("button");
+  buttons.forEach((btn) => {
+    const r = Number(btn.dataset.rating);
+    btn.classList.toggle("active", r <= selectedRating);
   });
 }
 
-// -------------------- 이벤트 바인딩 --------------------
-
-// 검색
-if (searchInputEl) {
-  searchInputEl.addEventListener("input", (e) => {
-    currentSearchQuery = e.target.value.trim();
-    renderFeed();
-  });
-}
-
-// 태그 필터
-tagFilterButtons.forEach((btn) => {
+ratingSelectorEl.querySelectorAll("button").forEach((btn) => {
   btn.addEventListener("click", () => {
-    tagFilterButtons.forEach((b) => b.classList.remove("active"));
-    btn.classList.add("active");
-    currentCategoryFilter = btn.dataset.category || "all";
-    renderFeed();
+    selectedRating = Number(btn.dataset.rating);
+    updateRatingSelector();
   });
 });
 
-// 맛집 추가 모달 open/close
-function openAddRestaurantModal() {
+async function submitReview() {
   if (!currentUser) {
-    showToast("로그인 상태를 확인 중입니다. 잠시 후 다시 시도해주세요.");
+    showToast("다시 로그인 해주세요.");
     return;
   }
-  addRestaurantModal.classList.remove("hidden");
-}
+  if (!selectedRestaurantId) {
+    showToast("먼저 맛집을 선택해주세요.");
+    return;
+  }
+  if (!selectedRating) {
+    showToast("별점을 선택해주세요.");
+    return;
+  }
+  const text = reviewTextInput.value.trim();
+  if (!text) {
+    showToast("리뷰 내용을 입력해주세요.");
+    return;
+  }
 
-function closeAddRestaurantModal() {
-  addRestaurantModal.classList.add("hidden");
-  addRestaurantForm.reset();
-}
-
-if (addRestaurantBtn) {
-  addRestaurantBtn.addEventListener("click", openAddRestaurantModal);
-}
-if (closeAddRestaurantModalBtn) {
-  closeAddRestaurantModalBtn.addEventListener("click", closeAddRestaurantModal);
-}
-if (cancelAddRestaurantBtn) {
-  cancelAddRestaurantBtn.addEventListener("click", closeAddRestaurantModal);
-}
-
-if (addRestaurantModal) {
-  addRestaurantModal.addEventListener("click", (e) => {
-    if (e.target === addRestaurantModal.querySelector(".modal-backdrop")) {
-      closeAddRestaurantModal();
-    }
-  });
-}
-
-// 맛집 추가 폼 제출
-if (addRestaurantForm) {
-  addRestaurantForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    if (!currentUser) {
-      showToast("로그인 상태를 확인 중입니다. 잠시 후 다시 시도해주세요.");
-      return;
-    }
-
-    const formData = new FormData(addRestaurantForm);
-    const name = formData.get("name").trim();
-    const address = formData.get("address").trim();
-    const positionDescription = formData.get("positionDescription").trim();
-    const mainMenu = formData.get("mainMenu").trim();
-    const mood = formData.get("mood").trim();
-    const waitingLevel = formData.get("waitingLevel") || "";
-    const smellLevel = formData.get("smellLevel") || "";
-    const priceLevel = formData.get("priceLevel") || "";
-    const category = formData.get("category") || "";
-    const mainHashtagsInput = formData.get("mainHashtags");
-    const imageUrl = formData.get("imageUrl").trim();
-
-    if (!name || !address) {
-      showToast("가게 이름과 주소는 필수입니다.");
-      return;
-    }
-
-    const mainHashtags = parseHashtags(mainHashtagsInput);
-
-    try {
-      await addDoc(collection(db, "restaurants"), {
-        name,
-        address,
-        positionDescription: positionDescription || null,
-        mainMenu: mainMenu || null,
-        mood: mood || null,
-        waitingLevel: waitingLevel || null,
-        smellLevel: smellLevel || null,
-        priceLevel: priceLevel || null,
-        category: category || null,
-        mainHashtags,
-        imageUrl: imageUrl || null,
-        creatorUID: currentUser.uid,
-        createdAt: serverTimestamp()
+  try {
+    if (editingReviewId) {
+      // update
+      await updateDoc(doc(db, "reviews", editingReviewId), {
+        rating: selectedRating,
+        text,
       });
-      showToast("맛집이 추가됐어요!");
-      closeAddRestaurantModal();
-      await loadRestaurants();
-    } catch (error) {
-      console.error(error);
-      showToast("맛집을 저장하는 중 오류가 발생했어요.");
+      showToast("리뷰가 수정되었어요.");
+    } else {
+      // create
+      await addDoc(collection(db, "reviews"), {
+        restaurantId: selectedRestaurantId,
+        rating: selectedRating,
+        text,
+        userUID: currentUser.uid,
+        userNickname:
+          currentUserProfile?.nickname || currentUser.email,
+        createdAt: serverTimestamp(),
+      });
+      showToast("리뷰가 등록되었어요.");
     }
-  });
+
+    selectedRating = 0;
+    updateRatingSelector();
+    reviewTextInput.value = "";
+    editingReviewId = null;
+    cancelEditReviewBtn.classList.add("hidden");
+
+    await loadReviews(selectedRestaurantId);
+  } catch (err) {
+    console.error(err);
+    showToast("리뷰 저장 중 오류가 발생했습니다.");
+  }
 }
 
-// 로그아웃
-if (logoutBtn) {
-  logoutBtn.addEventListener("click", async () => {
-    try {
-      await signOut(auth);
-      window.location.href = "login.html";
-    } catch (e) {
-      console.error(e);
-      showToast("로그아웃 중 오류가 발생했어요.");
-    }
-  });
+function startEditReview(id) {
+  const r = currentReviews.find((rv) => rv.id === id);
+  if (!r) return;
+
+  editingReviewId = id;
+  selectedRating = r.rating || 0;
+  updateRatingSelector();
+  reviewTextInput.value = r.text || "";
+  cancelEditReviewBtn.classList.remove("hidden");
 }
 
-// -------------------- 초기화 --------------------
+function cancelEditReview() {
+  editingReviewId = null;
+  selectedRating = 0;
+  updateRatingSelector();
+  reviewTextInput.value = "";
+  cancelEditReviewBtn.classList.add("hidden");
+}
 
-initAuth();
+async function deleteReview(id) {
+  const r = currentReviews.find((rv) => rv.id === id);
+  if (!r) return;
+
+  if (!confirm("이 리뷰를 삭제할까요?")) return;
+
+  try {
+    await deleteDoc(doc(db, "reviews", id));
+    showToast("리뷰가 삭제되었습니다.");
+    await loadReviews(selectedRestaurantId);
+  } catch (err) {
+    console.error(err);
+    showToast("리뷰 삭제 중 오류가 발생했습니다.");
+  }
+}
+
+// ---- 이벤트 바인딩 ----
+addRestaurantBtn.addEventListener("click", openRestaurantModalForCreate);
+closeRestaurantModalBtn.addEventListener("click", closeRestaurantModal);
+cancelRestaurantBtn.addEventListener("click", closeRestaurantModal);
+
+closeDetailModalBtn.addEventListener("click", closeDetailModal);
+
+searchInput.addEventListener("input", handleSearch);
+
+logoutBtn.addEventListener("click", async () => {
+  try {
+    await signOut(auth);
+    window.location.href = "login.html";
+  } catch (err) {
+    console.error(err);
+    showToast("로그아웃 중 오류가 발생했습니다.");
+  }
+});
+
+detailTabButtons.forEach((btn) => {
+  btn.addEventListener("click", () =>
+    setActiveTab(btn.dataset.tab)
+  );
+});
+
+submitReviewBtn.addEventListener("click", submitReview);
+cancelEditReviewBtn.addEventListener("click", cancelEditReview);
+
+// 프로필 버튼은 일단 토스트 정도만
+userProfileBtn.addEventListener("click", () => {
+  if (!currentUserProfile) return;
+  showToast(
+    `${currentUserProfile.nickname || currentUser.email} 님으로 로그인 중`
+  );
+});
