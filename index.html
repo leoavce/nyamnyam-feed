@@ -1,712 +1,188 @@
 <!DOCTYPE html>
-<html class="light" lang="ko">
+<html lang="ko">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>판교 맛집 지도 - Pangyo Matjip Map</title>
-
-  <!-- Tailwind CDN -->
-  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-
-  <!-- Google Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <meta charset="UTF-8" />
+  <title>판교 맛집 지도 - Pangyo Matjip Feed</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- 폰트 & 아이콘 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
-    href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;700;900&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Raleway:wght@400;600;800&display=swap"
     rel="stylesheet"
   />
+  <!-- integrity 제거해서 오류 방지 -->
   <link
-    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"
     rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
   />
-
-  <script>
-    tailwind.config = {
-      darkMode: "class",
-      theme: {
-        extend: {
-          colors: {
-            primary: "#f46a25",
-            "background-light": "#f8f6f5",
-            "background-dark": "#221610",
-            "text-light": "#1c120d",
-            "text-dark": "#f8f6f5",
-            "muted-light": "#9c6549",
-            "muted-dark": "#a38b7e",
-            "surface-light": "#f4ebe7",
-            "surface-dark": "#3a2a22",
-            "border-light": "#f4ebe7",
-            "border-dark": "#3a2a22"
-          },
-          fontFamily: {
-            display: ["Be Vietnam Pro", "sans-serif"]
-          },
-          borderRadius: {
-            DEFAULT: "0.25rem",
-            lg: "0.5rem",
-            xl: "0.75rem",
-            full: "9999px"
-          }
-        }
-      }
-    };
-  </script>
-
-  <style>
-    .material-symbols-outlined {
-      font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
-      font-size: 20px;
-    }
-  </style>
-
-  <!-- Tabs 전용 CSS -->
-  <link rel="stylesheet" href="./assets/css/tabs.css" />
+  <link rel="stylesheet" href="css/style.css" />
 </head>
-<body
-  class="font-display bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark"
->
-  <div
-    class="relative flex h-auto min-h-screen w-full flex-col group/design-root overflow-x-hidden"
-  >
-    <div class="layout-container flex h-full grow flex-col">
-      <div
-        class="px-4 sm:px-8 md:px-16 lg:px-24 xl:px-40 flex flex-1 justify-center py-5"
-      >
-        <div
-          class="layout-content-container flex flex-col w-full max-w-[1200px] flex-1"
-        >
-          <!-- HEADER -->
-          <header
-            class="flex items-center justify-between whitespace-nowrap border-b border-solid border-border-light dark:border-border-dark px-4 md:px-10 py-3"
-          >
-            <div class="flex items-center gap-8">
-              <div
-                class="flex items-center gap-4 text-text-light dark:text-text-dark"
-              >
-                <div class="size-6 text-primary">
-                  <svg
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      d="M18.28 10.395a1.2 1.2 0 0 1 1.056 1.944l-5.34 9.248a1.2 1.2 0 0 1-2.112 0L6.544 12.34a1.2 1.2 0 0 1 1.056-1.944h11.764L18.28 10.395zM12.988 3a1.2 1.2 0 0 1 1.04 1.8L12 8.76 9.972 4.8A1.2 1.2 0 0 1 11.012 3h1.976z"
-                    ></path>
-                  </svg>
-                </div>
-                <h2 class="text-lg font-bold leading-tight tracking-[-0.015em]">
-                  판교 맛집 지도
-                </h2>
-              </div>
-              <div class="hidden lg:flex items-center gap-9">
-                <a
-                  class="text-sm font-medium leading-normal hover:text-primary dark:hover:text-primary transition-colors"
-                  href="#"
-                  >홈</a
-                >
-                <a
-                  class="text-sm font-medium leading-normal hover:text-primary dark:hover:text-primary transition-colors"
-                  href="#restaurant-section"
-                  >맛집 리스트</a
-                >
-                <a
-                  class="text-sm font-medium leading-normal hover:text-primary dark:hover:text-primary transition-colors"
-                  href="#add-section"
-                  >맛집 추가</a
-                >
-              </div>
-            </div>
-            <div
-              class="flex flex-1 justify-end gap-4 sm:gap-8 items-center"
-            >
-              <!-- 검색 -->
-              <label
-                class="hidden sm:flex flex-col min-w-40 !h-10 max-w-64"
-              >
-                <div
-                  class="flex w-full flex-1 items-stretch rounded-lg h-full"
-                >
-                  <div
-                    class="text-muted-light dark:text-muted-dark flex bg-surface-light dark:bg-surface-dark items-center justify-center pl-4 rounded-l-lg border-r-0"
-                  >
-                    <span class="material-symbols-outlined">search</span>
-                  </div>
-                  <input
-                    id="searchInput"
-                    class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-light dark:text-text-dark focus:outline-0 focus:ring-0 border-none bg-surface-light dark:bg-surface-dark focus:border-none h-full placeholder:text-muted-light dark:placeholder:text-muted-dark px-4 rounded-l-none border-l-0 pl-2 text-base font-normal leading-normal focus:ring-primary/50"
-                    placeholder="가게 이름, 해시태그, 위치 검색"
-                  />
-                </div>
-              </label>
-
-              <!-- 현재 닉네임 표시 -->
-              <div
-                id="nicknameDisplay"
-                class="hidden sm:flex text-xs text-muted-light dark:text-muted-dark"
-              ></div>
-
-              <button
-                class="lg:hidden p-2 rounded-lg hover:bg-surface-light dark:hover:bg-surface-dark"
-              >
-                <span class="material-symbols-outlined">menu</span>
-              </button>
-            </div>
-          </header>
-
-          <!-- MAIN -->
-          <main id="restaurant-section" class="flex-1">
-            <div
-              class="flex flex-wrap justify-between gap-3 p-4 items-center"
-            >
-              <div>
-                <h1
-                  class="text-3xl sm:text-4xl font-black leading-tight tracking-[-0.033em] min-w-72"
-                >
-                  Explore Pangyo Kitchen
-                </h1>
-                <p
-                  class="mt-1 text-sm text-muted-light dark:text-muted-dark"
-                >
-                  판교 · 백현 · 알파돔 인근 맛집 리뷰와 해시태그로 찾는
-                  우리만의 맛집 지도
-                </p>
-              </div>
-              <button
-                id="openAddModalBtn"
-                class="flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-full bg-primary text-white px-4 text-sm font-medium leading-normal shadow-sm hover:opacity-90"
-              >
-                <span class="material-symbols-outlined !text-base">
-                  add
-                </span>
-                맛집 추가하기
-              </button>
-            </div>
-
-            <!-- 카테고리 필터 -->
-            <div class="flex gap-3 p-3 overflow-x-auto" id="categoryFilters">
-              <button
-                class="filter-btn flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-full bg-primary text-white px-4 text-sm font-medium leading-normal"
-                data-category="ALL"
-              >
-                All
-              </button>
-              <button
-                class="filter-btn flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-full bg-surface-light dark:bg-surface-dark hover:bg-primary/20 dark:hover:bg-primary/30 px-4 text-sm"
-                data-category="한식"
-              >
-                한식
-              </button>
-              <button
-                class="filter-btn flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-full bg-surface-light dark:bg-surface-dark hover:bg-primary/20 dark:hover:bg-primary/30 px-4 text-sm"
-                data-category="중식"
-              >
-                중식
-              </button>
-              <button
-                class="filter-btn flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-full bg-surface-light dark:bg-surface-dark hover:bg-primary/20 dark:hover:bg-primary/30 px-4 text-sm"
-                data-category="일식"
-              >
-                일식
-              </button>
-              <button
-                class="filter-btn flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-full bg-surface-light dark:bg-surface-dark hover:bg-primary/20 dark:hover:bg-primary/30 px-4 text-sm"
-                data-category="양식"
-              >
-                양식
-              </button>
-              <button
-                class="filter-btn flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-full bg-surface-light dark:bg-surface-dark hover:bg-primary/20 dark:hover:bg-primary/30 px-4 text-sm"
-                data-category="동남아"
-              >
-                동남아
-              </button>
-              <button
-                class="filter-btn flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-full bg-surface-light dark:bg-surface-dark hover:bg-primary/20 dark:hover:bg-primary/30 px-4 text-sm"
-                data-category="카페"
-              >
-                카페
-              </button>
-              <button
-                class="filter-btn flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-full bg-surface-light dark:bg-surface-dark hover:bg-primary/20 dark:hover:bg-primary/30 px-4 text-sm"
-                data-category="술집"
-              >
-                술집
-              </button>
-            </div>
-
-            <!-- 리스트 + 상세 패널 -->
-            <div
-              class="grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)] gap-6 p-4"
-            >
-              <!-- 맛집 카드 리스트 -->
-              <section
-                id="restaurantList"
-                class="grid grid-cols-1 sm:grid-cols-2 gap-6"
-              >
-                <!-- JS로 렌더링 -->
-              </section>
-
-              <!-- 상세 & 리뷰 탭 -->
-              <aside id="detailPanel" class="space-y-3">
-                <h2
-                  class="text-lg font-bold tracking-[-0.02em] flex items-center gap-2"
-                >
-                  <span class="material-symbols-outlined">
-                    restaurant
-                  </span>
-                  상세 정보 / 후기
-                </h2>
-                <div
-                  id="detailEmpty"
-                  class="text-sm text-muted-light dark:text-muted-dark border border-dashed border-border-light dark:border-border-dark rounded-xl p-4"
-                >
-                  좌측 카드에서 맛집을 선택하면 여기에서 상세 정보와
-                  후기를 볼 수 있어요.
-                </div>
-
-                <div id="detailContent" class="hidden">
-                  <div class="tabs">
-                    <div class="tab-header">
-                      <div class="active">기본 정보</div>
-                      <div>후기 &amp; 별점</div>
-                      <div>지도 / 링크</div>
-                    </div>
-                    <div class="tab-indicator"></div>
-                    <div class="tab-body">
-                      <!-- 기본 정보 탭 -->
-                      <div class="active" id="tab-info">
-                        <h3
-                          id="detail-name"
-                          class="text-xl font-bold mb-1"
-                        ></h3>
-                        <p
-                          id="detail-location"
-                          class="text-xs text-muted-light dark:text-muted-dark mb-1"
-                        ></p>
-                        <p
-                          id="detail-friendlyLocation"
-                          class="text-xs text-muted-light dark:text-muted-dark mb-3"
-                        ></p>
-
-                        <div
-                          class="flex flex-wrap gap-2 mb-3"
-                          id="detail-categories"
-                        ></div>
-
-                        <div
-                          id="detail-imageWrapper"
-                          class="mb-3 hidden"
-                        >
-                            <img
-                              id="detail-image"
-                              alt="가게 이미지"
-                              class="w-full max-h-48 object-cover rounded-xl"
-                            />
-                            <a
-                              id="detail-imageLink"
-                              href="#"
-                              target="_blank"
-                              class="block mt-1 text-xs text-primary underline"
-                            >
-                              원본 링크 열기
-                            </a>
-                        </div>
-
-                        <dl class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                          <div>
-                            <dt class="font-semibold">대표 메뉴</dt>
-                            <dd id="detail-menu" class="text-muted-light dark:text-muted-dark"></dd>
-                          </div>
-                          <div>
-                            <dt class="font-semibold">분위기</dt>
-                            <dd id="detail-mood" class="text-muted-light dark:text-muted-dark"></dd>
-                          </div>
-                          <div>
-                            <dt class="font-semibold">웨이팅</dt>
-                            <dd id="detail-waiting" class="text-muted-light dark:text-muted-dark"></dd>
-                          </div>
-                          <div>
-                            <dt class="font-semibold">냄새 배는지</dt>
-                            <dd id="detail-smell" class="text-muted-light dark:text-muted-dark"></dd>
-                          </div>
-                          <div>
-                            <dt class="font-semibold">가격대</dt>
-                            <dd id="detail-price" class="text-muted-light dark:text-muted-dark"></dd>
-                          </div>
-                          <div>
-                            <dt class="font-semibold">기타</dt>
-                            <dd id="detail-etc" class="text-muted-light dark:text-muted-dark"></dd>
-                          </div>
-                        </dl>
-
-                        <div class="mt-3">
-                          <h4 class="text-xs font-semibold mb-1">
-                            대표 해시태그
-                          </h4>
-                          <div
-                            id="detail-hashtags"
-                            class="flex flex-wrap gap-1 mb-2"
-                          ></div>
-                          <div
-                            id="hashtagEditor"
-                            class="hidden mt-1 flex gap-1 items-center"
-                          >
-                            <input
-                              id="hashtagInput"
-                              type="text"
-                              class="form-input text-xs flex-1"
-                              placeholder="#태그를 , 또는 공백으로 구분해서 입력"
-                            />
-                            <button
-                              id="hashtagSaveBtn"
-                              class="text-xs px-2 py-1 rounded-lg bg-primary text-white"
-                            >
-                              저장
-                            </button>
-                          </div>
-                          <p
-                            id="hashtagEditHint"
-                            class="hidden text-[10px] text-muted-light dark:text-muted-dark"
-                          >
-                            이 맛집을 등록한 사람만 대표 해시태그를 수정할 수
-                            있어요.
-                          </p>
-                        </div>
-                      </div>
-
-                      <!-- 후기 & 별점 탭 -->
-                      <div id="tab-reviews">
-                        <div
-                          class="flex items-center justify-between mb-3 text-sm"
-                        >
-                          <div class="flex items-center gap-2">
-                            <div id="detail-ratingStars" class="flex"></div>
-                            <span
-                              id="detail-ratingText"
-                              class="text-muted-light dark:text-muted-dark text-xs"
-                            ></span>
-                          </div>
-                          <div
-                            id="detail-ratingCount"
-                            class="text-xs text-muted-light dark:text-muted-dark"
-                          ></div>
-                        </div>
-
-                        <!-- 후기 작성 -->
-                        <div
-                          class="rounded-xl bg-surface-light dark:bg-surface-dark p-3 mb-4"
-                        >
-                          <div
-                            class="flex items-center justify-between mb-2 text-xs"
-                          >
-                            <span class="font-semibold">
-                              나의 후기 남기기
-                            </span>
-                            <span
-                              id="currentNicknameLabel"
-                              class="text-muted-light dark:text-muted-dark"
-                            ></span>
-                          </div>
-                          <div class="flex items-center gap-2 mb-2">
-                            <label
-                              class="text-xs text-muted-light dark:text-muted-dark"
-                              for="reviewRating"
-                              >별점</label
-                            >
-                            <select
-                              id="reviewRating"
-                              class="form-select text-xs max-w-[80px]"
-                            >
-                              <option value="5">5점</option>
-                              <option value="4">4점</option>
-                              <option value="3">3점</option>
-                              <option value="2">2점</option>
-                              <option value="1">1점</option>
-                            </select>
-                          </div>
-                          <textarea
-                            id="reviewComment"
-                            rows="3"
-                            class="form-textarea text-xs w-full mb-2"
-                            placeholder="후기 내용을 적어주세요."
-                          ></textarea>
-                          <button
-                            id="reviewSubmitBtn"
-                            class="w-full text-xs rounded-full bg-primary text-white py-2 hover:opacity-90"
-                          >
-                            후기 저장 / 업데이트
-                          </button>
-                        </div>
-
-                        <!-- 후기 리스트 -->
-                        <div>
-                          <h4 class="text-xs font-semibold mb-2">
-                            다른 사람 후기
-                          </h4>
-                          <div
-                            id="reviewsList"
-                            class="space-y-2 max-h-64 overflow-y-auto"
-                          ></div>
-                        </div>
-                      </div>
-
-                      <!-- 지도 / 링크 탭 -->
-                      <div id="tab-map">
-                        <p
-                          class="text-xs text-muted-light dark:text-muted-dark mb-3"
-                        >
-                          네이버 지도 / 카카오맵에서 바로 검색해서 위치를
-                          확인해보세요.
-                        </p>
-                        <a
-                          id="naverMapLink"
-                          href="#"
-                          target="_blank"
-                          class="flex items-center justify-between rounded-lg bg-surface-light dark:bg-surface-dark px-3 py-2 mb-2 text-xs hover:bg-primary/10"
-                        >
-                          <span>네이버 지도에서 검색</span>
-                          <span class="material-symbols-outlined text-xs">
-                            open_in_new
-                          </span>
-                        </a>
-                        <a
-                          id="kakaoMapLink"
-                          href="#"
-                          target="_blank"
-                          class="flex items-center justify-between rounded-lg bg-surface-light dark:bg-surface-dark px-3 py-2 text-xs hover:bg-primary/10"
-                        >
-                          <span>카카오맵에서 검색</span>
-                          <span class="material-symbols-outlined text-xs">
-                            open_in_new
-                          </span>
-                        </a>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </aside>
-            </div>
-          </main>
-
-          <!-- FOOTER -->
-          <footer
-            class="mt-10 border-t border-solid border-border-light dark:border-border-dark py-8 px-4 md:px-10"
-          >
-            <div
-              class="flex flex-col md:flex-row justify-between items-center gap-6"
-            >
-              <div class="flex items-center gap-4">
-                <div class="size-6 text-primary">
-                  <svg
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      d="M18.28 10.395a1.2 1.2 0 0 1 1.056 1.944l-5.34 9.248a1.2 1.2 0 0 1-2.112 0L6.544 12.34a1.2 1.2 0 0 1 1.056-1.944h11.764L18.28 10.395zM12.988 3a1.2 1.2 0 0 1 1.04 1.8L12 8.76 9.972 4.8A1.2 1.2 0 0 1 11.012 3h1.976z"
-                    ></path>
-                  </svg>
-                </div>
-                <p
-                  class="text-sm text-muted-light dark:text-muted-dark"
-                >
-                  © 2025 Pangyo Matjip Map. All Rights Reserved.
-                </p>
-              </div>
-            </div>
-          </footer>
+<body>
+  <header class="app-header">
+    <div class="app-header-inner">
+      <div class="brand">
+        <span class="logo-dot"></span>
+        <div class="brand-text">
+          <h1>판교 맛집 지도</h1>
+          <p>Pangyo Matjip Feed · Beta</p>
         </div>
       </div>
-    </div>
-  </div>
-
-  <!-- 맛집 추가 모달 -->
-  <div
-    id="addModal"
-    class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40"
-  >
-    <div
-      class="bg-background-light dark:bg-background-dark rounded-2xl shadow-xl w-full max-w-lg mx-4 p-5 space-y-4"
-    >
-      <div class="flex items-center justify-between">
-        <h2 class="text-lg font-bold">새 맛집 추가</h2>
-        <button
-          id="closeAddModalBtn"
-          class="rounded-full p-1 hover:bg-surface-light dark:hover:bg-surface-dark"
-        >
-          <span class="material-symbols-outlined">close</span>
+      <div class="header-right">
+        <div class="search-bar">
+          <i class="fa fa-search"></i>
+          <input
+            id="searchInput"
+            type="text"
+            placeholder="가게 이름 또는 #해시태그로 검색"
+          />
+        </div>
+        <button id="addRestaurantBtn" class="primary-btn">
+          <i class="fa fa-plus"></i> 맛집 추가하기
+        </button>
+        <div class="user-chip">
+          <i class="fa fa-user"></i>
+          <span id="nicknameLabel">로그인 확인 중...</span>
+        </div>
+        <button id="logoutBtn" class="secondary-btn secondary-btn-sm">
+          로그아웃
         </button>
       </div>
-      <form id="addRestaurantForm" class="space-y-3 text-xs" autocomplete="off">
-        <div class="space-y-1">
-          <label class="font-semibold">가게 이름</label>
-          <input
-            type="text"
-            name="name"
-            required
-            class="form-input w-full"
-            placeholder="예) 면장수 판교점"
-          />
-        </div>
+    </div>
+    <div class="tag-filter-row">
+      <button class="tag-filter-btn active" data-category="all">전체</button>
+      <button class="tag-filter-btn" data-category="korean">한식</button>
+      <button class="tag-filter-btn" data-category="chinese">중식</button>
+      <button class="tag-filter-btn" data-category="japanese">일식</button>
+      <button class="tag-filter-btn" data-category="western">양식</button>
+      <button class="tag-filter-btn" data-category="seasia">동남아</button>
+      <button class="tag-filter-btn" data-category="cafe">카페</button>
+      <button class="tag-filter-btn" data-category="bar">술집</button>
+    </div>
+  </header>
 
-        <div class="space-y-1">
-          <label class="font-semibold">위치</label>
-          <input
-            type="text"
-            name="location"
-            required
-            class="form-input w-full"
-            placeholder="예) 판교역 1번 출구 도보 5분"
-          />
-        </div>
+  <main class="app-main">
+    <section id="feed" class="feed">
+      <!-- JS에서 맛집 카드가 렌더링됩니다 -->
+    </section>
+  </main>
 
-        <div class="space-y-1">
-          <label class="font-semibold">친절한 위치 설명</label>
-          <input
-            type="text"
-            name="friendlyLocation"
-            class="form-input w-full"
-            placeholder="예) 안랩 바로 뒤 골목, 땡스네이처 옆"
-          />
+  <!-- 맛집 추가 모달 (UI 개선) -->
+  <div id="addRestaurantModal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content modal-content-wide">
+      <header class="modal-header modal-header-accent">
+        <div>
+          <h2>맛집 추가하기</h2>
+          <p>판교에 숨겨진 맛집을 같이 아카이빙해봐요.</p>
         </div>
-
-        <div class="grid grid-cols-2 gap-3">
-          <div class="space-y-1">
-            <label class="font-semibold">대표 메뉴</label>
-            <input
-              type="text"
-              name="menu"
-              class="form-input w-full"
-              placeholder="예) 얼큰칼국수, 왕만두"
-            />
+        <button class="icon-btn icon-btn-light" id="closeAddRestaurantModal">
+          <i class="fa fa-times"></i>
+        </button>
+      </header>
+      <form id="addRestaurantForm" class="modal-body modal-body-grid">
+        <section class="modal-section">
+          <h3 class="modal-section-title">기본 정보</h3>
+          <div class="form-row">
+            <label>가게 이름<span class="required">*</span></label>
+            <input type="text" name="name" placeholder="예: 면장수 판교점" required />
           </div>
-          <div class="space-y-1">
-            <label class="font-semibold">분위기</label>
-            <input
-              type="text"
-              name="mood"
-              class="form-input w-full"
-              placeholder="예) 조용함 / 시끌벅적 / 회식용"
-            />
+          <div class="form-row">
+            <label>주소<span class="required">*</span></label>
+            <input type="text" name="address" placeholder="예: 성남시 분당구 판교역로 ..." required />
           </div>
-        </div>
+          <div class="form-row">
+            <label>친절한 위치</label>
+            <input type="text" name="positionDescription" placeholder="안랩 바로 뒤, 판교역 1번 출구 5분 등" />
+          </div>
+          <div class="form-row">
+            <label>대표 메뉴</label>
+            <input type="text" name="mainMenu" placeholder="차돌된장, 명란크림파스타 등" />
+          </div>
+        </section>
 
-        <div class="grid grid-cols-2 gap-3">
-          <div class="space-y-1">
-            <label class="font-semibold">웨이팅 정도</label>
-            <input
-              type="text"
-              name="waiting"
-              class="form-input w-full"
-              placeholder="예) 평일 점심 10~20분"
-            />
+        <section class="modal-section">
+          <h3 class="modal-section-title">분위기 & 체류감</h3>
+          <div class="form-row two-col">
+            <div>
+              <label>분위기</label>
+              <input type="text" name="mood" placeholder="조용한, 캐주얼한, 회식용 등" />
+            </div>
+            <div>
+              <label>웨이팅</label>
+              <select name="waitingLevel">
+                <option value="">선택</option>
+                <option value="low">적음</option>
+                <option value="medium">보통</option>
+                <option value="high">많음</option>
+              </select>
+            </div>
           </div>
-          <div class="space-y-1">
-            <label class="font-semibold">냄새 배는지</label>
-            <select name="smell" class="form-select w-full">
-              <option value="">선택 안 함</option>
-              <option value="잘 배지 않음">잘 배지 않음</option>
-              <option value="조금 배는 편">조금 배는 편</option>
-              <option value="많이 배는 편">많이 배는 편</option>
+          <div class="form-row two-col">
+            <div>
+              <label>냄새 배는지</label>
+              <select name="smellLevel">
+                <option value="">선택</option>
+                <option value="none">거의 안 밈</option>
+                <option value="normal">보통</option>
+                <option value="strong">잘 밈</option>
+              </select>
+            </div>
+            <div>
+              <label>가격대</label>
+              <select name="priceLevel">
+                <option value="">선택</option>
+                <option value="₩">₩ (1만원대)</option>
+                <option value="₩₩">₩₩ (1~2만원대)</option>
+                <option value="₩₩₩">₩₩₩ (2만원 이상)</option>
+              </select>
+            </div>
+          </div>
+        </section>
+
+        <section class="modal-section">
+          <h3 class="modal-section-title">태그 & 이미지</h3>
+          <div class="form-row">
+            <label>카테고리 태그</label>
+            <select name="category">
+              <option value="">선택</option>
+              <option value="korean">한식</option>
+              <option value="chinese">중식</option>
+              <option value="japanese">일식</option>
+              <option value="western">양식</option>
+              <option value="seasia">동남아</option>
+              <option value="cafe">카페</option>
+              <option value="bar">술집</option>
             </select>
           </div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-3">
-          <div class="space-y-1">
-            <label class="font-semibold">가격대</label>
-            <input
-              type="text"
-              name="price"
-              class="form-input w-full"
-              placeholder="예) 1인 1.2만~1.8만"
-            />
+          <div class="form-row">
+            <label>대표 해시태그 (쉼표로 구분)</label>
+            <input type="text" name="mainHashtags" placeholder="#점심맛집, #냄새안밈, #회식굿 등" />
           </div>
-          <div class="space-y-1">
-            <label class="font-semibold">이미지 URL (선택)</label>
-            <input
-              type="url"
-              name="imageUrl"
-              class="form-input w-full"
-              placeholder="이미지 링크 (직접 링크일수록 좋음)"
-            />
+          <div class="form-row">
+            <label>대표 이미지 URL</label>
+            <input type="url" name="imageUrl" placeholder="https:// 로 시작하는 이미지 주소" />
+            <p class="form-help-text">
+              이미지는 파일 업로드 대신, 외부 이미지 URL을 미리보기로 보여줘요.
+            </p>
           </div>
-        </div>
+        </section>
 
-        <div class="space-y-1">
-          <label class="font-semibold">주요 카테고리</label>
-          <div class="flex flex-wrap gap-2">
-            <!-- 카테고리 체크박스 -->
-            <label class="inline-flex items-center gap-1">
-              <input type="checkbox" name="categories" value="한식" />
-              <span>한식</span>
-            </label>
-            <label class="inline-flex items-center gap-1">
-              <input type="checkbox" name="categories" value="중식" />
-              <span>중식</span>
-            </label>
-            <label class="inline-flex items-center gap-1">
-              <input type="checkbox" name="categories" value="일식" />
-              <span>일식</span>
-            </label>
-            <label class="inline-flex items-center gap-1">
-              <input type="checkbox" name="categories" value="양식" />
-              <span>양식</span>
-            </label>
-            <label class="inline-flex items-center gap-1">
-              <input type="checkbox" name="categories" value="동남아" />
-              <span>동남아</span>
-            </label>
-            <label class="inline-flex items-center gap-1">
-              <input type="checkbox" name="categories" value="카페" />
-              <span>카페</span>
-            </label>
-            <label class="inline-flex items-center gap-1">
-              <input type="checkbox" name="categories" value="술집" />
-              <span>술집</span>
-            </label>
-          </div>
-        </div>
-
-        <div class="space-y-1">
-          <label class="font-semibold">대표 해시태그 (선택)</label>
-          <input
-            type="text"
-            name="hashtags"
-            class="form-input w-full"
-            placeholder="#칼국수 #점심맛집 처럼 , 또는 공백으로 구분"
-          />
-        </div>
-
-        <p
-          class="text-[10px] text-muted-light dark:text-muted-dark leading-relaxed"
-        >
-          * 누구나 익명으로 맛집을 추가하고 후기를 남길 수 있어요.<br />
-          * 한 번 설정한 닉네임은 같은 브라우저에서 계속 사용돼요.
-        </p>
-
-        <div class="flex justify-end gap-2 pt-2">
-          <button
-            type="button"
-            id="cancelAddBtn"
-            class="px-3 py-2 text-xs rounded-full border border-border-light dark:border-border-dark"
-          >
+        <footer class="modal-footer modal-footer-sticky">
+          <button type="button" class="secondary-btn" id="cancelAddRestaurant">
             취소
           </button>
-          <button
-            type="submit"
-            class="px-4 py-2 text-xs rounded-full bg-primary text-white"
-          >
+          <button type="submit" class="primary-btn">
             저장하기
           </button>
-        </div>
+        </footer>
       </form>
     </div>
   </div>
 
-  <!-- Firebase + 앱 스크립트 -->
-  <script type="module" src="./assets/js/firebase-config.js"></script>
-  <script type="module" src="./assets/js/tabs.js"></script>
-  <script type="module" src="./assets/js/app.js"></script>
+  <!-- 전역 로딩 토스트 -->
+  <div id="toast" class="toast hidden"></div>
+
+  <script type="module" src="js/app.js"></script>
 </body>
 </html>
