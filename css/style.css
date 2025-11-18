@@ -194,6 +194,26 @@ body {
   text-overflow: ellipsis;
 }
 
+/* 대표 메뉴 + 카테고리 */
+.card-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 12px;
+  color: #7a5a48;
+}
+
+.card-category {
+  font-weight: 600;
+  padding-right: 6px;
+  border-right: 1px solid #e0d4ce;
+}
+
+.card-menu {
+  padding-left: 6px;
+}
+
+/* 태그/해시태그 */
 .card-tags-row {
   display: flex;
   flex-wrap: wrap;
@@ -623,6 +643,10 @@ body {
   font-size: 16px;
 }
 
+.rating-selector.button {
+  font-size: 16px;
+}
+
 .rating-selector button.active {
   background: #f39c12;
   color: #fff;
@@ -651,7 +675,7 @@ body {
 /* Stats 탭 */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 12px;
 }
 
@@ -659,6 +683,10 @@ body {
   background: #f4ebe7;
   border-radius: 12px;
   padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 80px;
 }
 
 .stat-card.stat-wide {
@@ -704,6 +732,191 @@ body {
 .map-hint {
   font-size: 12px;
   color: #7a5a48;
+}
+
+/* nyamnyam feed 모달 */
+.feed-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 8px 20px 0;
+  border-bottom: 1px solid #e0d4ce;
+}
+
+.feed-tab-button {
+  border: none;
+  background: transparent;
+  border-radius: 999px 999px 0 0;
+  padding: 8px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  color: #9c6549;
+}
+
+.feed-tab-button.active {
+  background: #f4ebe7;
+  color: #1c120d;
+  font-weight: 600;
+}
+
+.feed-tab-panel {
+  display: none;
+}
+
+.feed-tab-panel.active {
+  display: block;
+}
+
+.feed-section {
+  margin-bottom: 16px;
+}
+
+.feed-section-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.feed-section-header h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.feed-section-sub {
+  margin: 0;
+  font-size: 12px;
+  color: #7a5a48;
+}
+
+/* 내 리스트 / 최근 방문 아이템 */
+.feed-log-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.feed-log-item {
+  background: #fff;
+  border-radius: 10px;
+  border: 1px solid #e0d4ce;
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.feed-log-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.feed-log-title {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.feed-log-meta {
+  font-size: 12px;
+  color: #7a5a48;
+}
+
+/* nyamnyam 글 작성 */
+.post-form {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #e0d4ce;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.post-form input,
+.post-form textarea {
+  border-radius: 8px;
+  border: 1px solid #e0d4ce;
+  padding: 8px 10px;
+  font-size: 13px;
+}
+
+.post-form input:focus,
+.post-form textarea:focus {
+  outline: none;
+  border-color: #f46a25;
+}
+
+.post-form-footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* nyamnyam 글 카드 (트위터 느낌) */
+.feed-post-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.feed-post-card {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #e0d4ce;
+  padding: 10px 12px;
+}
+
+.feed-post-header {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.avatar-circle {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: #f4ebe7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: #9c6549;
+}
+
+.feed-post-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.feed-post-title-line {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  font-size: 12px;
+}
+
+.feed-post-author {
+  font-weight: 600;
+}
+
+.feed-post-date {
+  color: #9c6549;
+}
+
+.feed-post-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.feed-post-body {
+  font-size: 13px;
+  line-height: 1.4;
 }
 
 /* 토스트 */
