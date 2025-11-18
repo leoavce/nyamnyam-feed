@@ -295,6 +295,12 @@ body {
   max-width: 900px;
 }
 
+/* 맛집 추가 모달 넓게 */
+.modal-wide {
+  max-width: 760px;
+}
+
+/* modal header/body */
 .modal-header {
   padding: 14px 20px;
   border-bottom: 1px solid #e0d4ce;
@@ -318,7 +324,7 @@ body {
 /* 폼 그리드 (맛집 추가) */
 .form-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 12px 16px;
 }
 
@@ -683,7 +689,7 @@ body {
 /* Stats 탭 */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 12px;
 }
 
@@ -695,10 +701,6 @@ body {
   flex-direction: column;
   justify-content: center;
   min-height: 80px;
-}
-
-.stat-card.stat-wide {
-  grid-column: 1 / -1;
 }
 
 .stat-label {
@@ -837,6 +839,12 @@ body {
   color: #7a5a48;
 }
 
+.feed-log-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 /* nyamnyam 글 작성 */
 .post-form {
   background: #fff;
@@ -866,6 +874,29 @@ body {
 .post-form-footer {
   display: flex;
   justify-content: flex-end;
+}
+
+/* nyamnyam 글 포맷팅 툴바 */
+.post-toolbar {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.post-toolbar-btn {
+  border-radius: 999px;
+  border: 1px solid #e0d4ce;
+  background: #f8f6f5;
+  cursor: pointer;
+  padding: 4px 8px;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.post-toolbar-btn:hover {
+  background: #f4ebe7;
 }
 
 /* nyamnyam 글 카드 (트위터 느낌) */
@@ -953,7 +984,7 @@ body {
 .auth-fullscreen {
   position: fixed;
   inset: 0;
-  background: rgba(30, 80, 180, 0.9);
+  background: radial-gradient(circle at top, #ffffff 0, #f8f6f5 40%, #f4ebe7 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -966,7 +997,7 @@ body {
   padding: 20px 24px 18px;
   max-width: 360px;
   width: 100%;
-  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.12);
 }
 
 .login-title {
@@ -1007,7 +1038,7 @@ body {
   gap: 8px;
 }
 
-/* signup stepper 참고용 */
+/* signup stepper 참고용 (화이트/주황 컨셉 유지) */
 .auth-card {
   position: relative;
   background: #fff;
@@ -1015,7 +1046,7 @@ body {
   padding: 28px 24px 22px;
   max-width: 360px;
   width: 100%;
-  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.12);
 }
 
 .auth-bullets {
@@ -1035,7 +1066,7 @@ body {
 }
 
 .auth-bullets span.active {
-  background: #fff;
+  background: #f46a25;
 }
 
 .auth-form {
@@ -1075,7 +1106,7 @@ body {
   padding-left: 44px;
   border-radius: 8px;
   border: none;
-  box-shadow: 0 6px 12px rgba(20, 20, 20, 0.4);
+  box-shadow: 0 6px 12px rgba(20, 20, 20, 0.2);
   font-size: 15px;
 }
 
@@ -1162,5 +1193,9 @@ body {
 
   .detail-body {
     max-height: 70vh;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
   }
 }
