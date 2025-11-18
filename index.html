@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>삼평동 맛집 이야기</title>
+  <title>상폄동 맛집 이야기 · nyamnyam feed</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <!-- favicon -->
   <link rel="icon" type="image/png" href="favicon.png" />
@@ -19,7 +19,7 @@
     <!-- 헤더 -->
     <header class="app-header">
       <div class="app-title">
-        <div class="app-title-main">삼평동 맛집 이야기</div>
+        <div class="app-title-main">상폄동 맛집 이야기</div>
         <div class="app-title-sub">nyamnyam feed</div>
       </div>
       <div class="header-controls">
@@ -71,7 +71,7 @@
         </div>
         <div id="emptyState" class="empty-state hidden">
           <p>아직 등록된 맛집이 없어요.</p>
-          <p>제일 먼저 <strong>“맛집 추가하기”</strong>를 눌러 삼평동 맛집을 기록해볼까요?</p>
+          <p>제일 먼저 <strong>“맛집 추가하기”</strong>를 눌러 상폄동 맛집을 기록해볼까요?</p>
         </div>
       </section>
     </main>
@@ -79,7 +79,7 @@
 
   <!-- 맛집 생성/편집 모달 -->
   <div id="restaurantModal" class="modal-overlay hidden">
-    <div class="modal">
+    <div class="modal modal-wide">
       <div class="modal-header">
         <h2 id="restaurantModalTitle">맛집 추가하기</h2>
         <button class="icon-button" id="closeRestaurantModalBtn">
@@ -400,13 +400,13 @@
               <div class="stat-label">리뷰 수</div>
               <div id="statsReviewCount" class="stat-value">0개</div>
             </div>
-            <div class="stat-card stat-wide">
+            <div class="stat-card">
               <div class="stat-label">간단 코멘트</div>
               <div id="statsSummaryText" class="stat-summary">
                 리뷰가 쌓이면 전체 분위기를 요약해서 보여줄게요.
               </div>
             </div>
-            <div class="stat-card stat-wide">
+            <div class="stat-card">
               <div class="stat-label">가장 최근 리뷰</div>
               <div id="statsRecentReview" class="stat-recent">
                 아직 등록된 리뷰가 없어요.
@@ -499,6 +499,40 @@
                 type="text"
                 placeholder="제목 (예: 안랩 뒤 짬뽕집 후기)"
               />
+              <div class="post-toolbar">
+                <button
+                  type="button"
+                  class="post-toolbar-btn"
+                  data-format="bold"
+                  title="굵게"
+                >
+                  <i class="fa fa-bold"></i>
+                </button>
+                <button
+                  type="button"
+                  class="post-toolbar-btn"
+                  data-format="divider"
+                  title="구분선"
+                >
+                  ─
+                </button>
+                <button
+                  type="button"
+                  class="post-toolbar-btn"
+                  data-format="callout"
+                  title="콜아웃"
+                >
+                  💡
+                </button>
+                <button
+                  type="button"
+                  class="post-toolbar-btn"
+                  data-format="emoji"
+                  title="이모지"
+                >
+                  😋
+                </button>
+              </div>
               <textarea
                 id="postContentInput"
                 rows="3"
@@ -539,6 +573,6 @@
   <div id="toast" class="toast hidden"></div>
 
   <!-- 메인 JS -->
-  <script type="module" src="js/app.js"></script>
+  <script type="module" src="app.js"></script>
 </body>
 </html>
