@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>회원가입 · 판교 맛집 지도</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+  />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="auth-fullscreen" id="signupContainer">
+    <div class="auth-card" id="signupCard">
+      <div class="auth-bullets">
+        <span class="active" data-step="1"></span>
+        <span data-step="2"></span>
+        <span data-step="3"></span>
+      </div>
+      <div class="auth-form">
+        <div class="auth-title">회원가입</div>
+
+        <!-- step 1: 닉네임 -->
+        <div class="auth-row visible shown" data-step="1">
+          <span class="auth-icon"><i class="fa fa-user"></i></span>
+          <input
+            type="text"
+            id="signupNickname"
+            placeholder="닉네임"
+            autocomplete="off"
+          />
+          <div class="auth-next-btn" data-next-step="2">
+            <i class="fa fa-chevron-right"></i>
+          </div>
+        </div>
+
+        <!-- step 2: 이메일 -->
+        <div class="auth-row" data-step="2">
+          <span class="auth-icon"><i class="fa fa-envelope"></i></span>
+          <input
+            type="email"
+            id="signupEmail"
+            placeholder="이메일"
+            autocomplete="email"
+          />
+          <div class="auth-next-btn" data-next-step="3">
+            <i class="fa fa-chevron-right"></i>
+          </div>
+        </div>
+
+        <!-- step 3: 비밀번호 -->
+        <div class="auth-row" data-step="3">
+          <span class="auth-icon"><i class="fa fa-key"></i></span>
+          <input
+            type="password"
+            id="signupPassword"
+            placeholder="비밀번호 (6자 이상)"
+            autocomplete="new-password"
+          />
+          <div class="auth-next-btn" data-next-step="done">
+            <i class="fa fa-chevron-right"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import {
+      getAuth,
+      onAuthStateChanged,
+      createUserWithEmailAndPassword,
+      signOut
+    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import {
+      getFirestore,
+      doc,
+      setDoc,
+      serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBO9tShfmq6MM6V0igKmIuUkg-U_9sW13g",
+      authDomain: "matjip-jido-a6020.firebaseapp.com",
+      projectId: "matjip-jido-a6020",
+      storageBucket: "matjip-jido-a6020.firebasestorage.app",
+      messagingSenderId: "794785619474",
+      appId: "1:794785619474:web:06b7e2d25088742fea42cb",
+      measurementId: "G-YZBYZX7G7B"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const toastEl = document.getElementById("toast");
+    function showToast(message, duration = 2000) {
+      toastEl.textContent = message;
+      toastEl.classList.remove("hidden");
+      setTimeout(() => {
+        toastEl.classList.add("hidden");
+      }, duration);
+    }
+
+    // 이미 로그인된 상태로 회원가입 페이지 들어오면 그냥 index로 보내버리기
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        // 이미 로그인 되어 있는 상태에서 회원가입 페이지 올 일은 거의 없지만,
+        // 혹시 오면 메인으로 보내기
+        // (회원가입 직후에는 아래에서 signOut 하니까 여기에 안 걸림)
+        // window.location.href = "index.html";
+      }
+    });
+
+    const container = document.getElementById("signupContainer");
+    const card = document.getElementById("signupCard");
+    const bullets = card.querySelectorAll(".auth-bullets span");
+    const rows = card.querySelectorAll(".auth-row");
+
+    const nicknameInput = document.getElementById("signupNickname");
+    const emailInput = document.getElementById("signupEmail");
+    const passwordInput = document.getElementById("signupPassword");
+
+    function setActiveStep(step) {
+      bullets.forEach((b) => {
+        const s = Number(b.dataset.step);
+        b.classList.toggle("active", s === step);
+      });
+    }
+
+    function shakeRow(row) {
+      row.classList.add("shake");
+      container.classList.add("error");
+      setTimeout(() => {
+        row.classList.remove("shake");
+        container.classList.remove("error");
+      }, 450);
+    }
+
+    function goToStep(currentStep, nextStep) {
+      const currentRow = Array.from(rows).find(
+        (r) => Number(r.dataset.step) === currentStep
+      );
+      if (!currentRow) return;
+
+      if (nextStep === "done") {
+        handleSignup();
+        return;
+      }
+
+      const nextRow = Array.from(rows).find(
+        (r) => Number(r.dataset.step) === nextStep
+      );
+      if (!nextRow) return;
+
+      currentRow.classList.remove("shown");
+      currentRow.classList.add("hide");
+      nextRow.classList.remove("hide");
+      nextRow.classList.add("shown", "visible");
+
+      setActiveStep(nextStep);
+    }
+
+    async function handleSignup() {
+      const nickname = nicknameInput.value.trim();
+      const email = emailInput.value.trim();
+      const password = passwordInput.value.trim();
+
+      const lastRow = Array.from(rows).find((r) => r.dataset.step === "3");
+
+      if (!nickname || nickname.length < 1) {
+        shakeRow(
+          Array.from(rows).find((r) => r.dataset.step === "1") || lastRow
+        );
+        showToast("닉네임을 입력해주세요.");
+        return;
+      }
+      if (!email || !email.includes("@")) {
+        shakeRow(
+          Array.from(rows).find((r) => r.dataset.step === "2") || lastRow
+        );
+        showToast("올바른 이메일을 입력해주세요.");
+        return;
+      }
+      if (!password || password.length < 6) {
+        shakeRow(lastRow);
+        showToast("비밀번호는 6자 이상이어야 해요.");
+        return;
+      }
+
+      try {
+        const cred = await createUserWithEmailAndPassword(auth, email, password);
+        const user = cred.user;
+
+        // users 컬렉션에 닉네임/프로필 저장
+        await setDoc(doc(db, "users", user.uid), {
+          nickname,
+          email,
+          createdAt: serverTimestamp()
+        });
+
+        // 자동 로그인된 상태를 끊고 → 로그인 페이지로 보내기
+        await signOut(auth);
+
+        card.innerHTML = `
+          <div class="auth-success">
+            <i class="fa fa-check"></i>
+            <h2>회원가입 완료</h2>
+            <p style="margin-top:10px;font-size:13px;color:#555;">
+              이제 방금 만든 계정으로 로그인해 주세요.
+            </p>
+          </div>
+        `;
+        container.classList.remove("error");
+        container.style.background = "#fff";
+
+        setTimeout(() => {
+          window.location.href = "login.html";
+        }, 1500);
+      } catch (error) {
+        console.error(error);
+        showToast("회원가입 중 오류가 발생했어요. 이미 존재하는 이메일인지 확인해주세요.");
+        container.classList.add("error");
+      }
+    }
+
+    const nextButtons = card.querySelectorAll(".auth-next-btn");
+    nextButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const parentRow = btn.closest(".auth-row");
+        const step = Number(parentRow.dataset.step);
+
+        const input =
+          step === 1 ? nicknameInput : step === 2 ? emailInput : passwordInput;
+        const value = input.value.trim();
+
+        if (step === 1 && value.length < 1) {
+          shakeRow(parentRow);
+          showToast("닉네임을 입력해주세요.");
+          return;
+        }
+        if (step === 2 && (!value || !value.includes("@"))) {
+          shakeRow(parentRow);
+          showToast("올바른 이메일을 입력해주세요.");
+          return;
+        }
+        if (step === 3 && value.length < 6) {
+          shakeRow(parentRow);
+          showToast("비밀번호는 6자 이상이어야 해요.");
+          return;
+        }
+
+        const nextStep = btn.dataset.nextStep;
+        goToStep(step, nextStep === "done" ? "done" : Number(nextStep));
+      });
+    });
+
+    // 엔터키로도 다음/완료 가능
+    [nicknameInput, emailInput, passwordInput].forEach((inputEl) => {
+      inputEl.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          const row = inputEl.closest(".auth-row");
+          const step = Number(row.dataset.step);
+          const btn = row.querySelector(".auth-next-btn");
+          if (btn) btn.click();
+        }
+      });
+    });
+  </script>
+</body>
+</html>
