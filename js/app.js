@@ -122,6 +122,7 @@ const allPostsListEl = document.getElementById("allPostsList");
 const postTitleInput = document.getElementById("postTitleInput");
 const postContentInput = document.getElementById("postContentInput");
 const postSubmitBtn = document.getElementById("postSubmitBtn");
+const postToolbarButtons = document.querySelectorAll(".post-toolbar-btn");
 
 // ---- 유틸 ----
 function showToast(message, duration = 2000) {
@@ -156,6 +157,46 @@ function formatDate(ts) {
 function formatRating(value) {
   if (value == null || isNaN(value)) return "-";
   return Number(value).toFixed(1);
+}
+
+// textarea 포맷팅 헬퍼
+function insertAroundSelection(textarea, prefix, suffix = "", placeholder = "") {
+  const start = textarea.selectionStart ?? 0;
+  const end = textarea.selectionEnd ?? 0;
+  const value = textarea.value;
+  const before = value.slice(0, start);
+  const selected = value.slice(start, end) || placeholder;
+  const after = value.slice(end);
+
+  const newValue = before + prefix + selected + suffix + after;
+  textarea.value = newValue;
+
+  const cursorStart = before.length + prefix.length;
+  const cursorEnd = cursorStart + selected.length;
+  textarea.focus();
+  textarea.setSelectionRange(cursorStart, cursorEnd);
+}
+
+function insertAtCursor(textarea, text) {
+  const start = textarea.selectionStart ?? textarea.value.length;
+  const end = textarea.selectionEnd ?? textarea.value.length;
+  const value = textarea.value;
+  const before = value.slice(0, start);
+  const after = value.slice(end);
+  textarea.value = before + text + after;
+  const cursor = before.length + text.length;
+  textarea.focus();
+  textarea.setSelectionRange(cursor, cursor);
+}
+
+// 포스트 에디터로 포커스 이동 + 제목 프리필
+function focusPostEditor(title) {
+  setFeedActiveTab("mine");
+  if (title) {
+    postTitleInput.value = title;
+  }
+  postContentInput.focus();
+  postContentInput.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
 // ---- 인증 처리 ----
@@ -830,7 +871,6 @@ async function updateRestaurantStats(restaurantId, avg, count) {
   } catch (err) {
     console.error("update stats error", err);
     if (err.code === "permission-denied") {
-      // 콘솔로만 남기고, 사용자에겐 굳이 토스트 안 띄움 (어차피 화면에는 반영됨)
       return;
     }
   }
@@ -976,12 +1016,23 @@ function renderMyRestaurantsInFeed() {
         <span class="feed-log-title">${r.name}</span>
         <span class="feed-log-meta">${r.friendlyLocation || r.location || "-"}</span>
       </div>
-      <button class="text-button small" type="button">열기</button>
+      <div class="feed-log-actions">
+        <button class="text-button small" type="button" data-action="open">열기</button>
+        <button class="text-button small" type="button" data-action="write">글 쓰기</button>
+      </div>
     `;
-    div.querySelector("button").addEventListener("click", () => {
+    const openBtn = div.querySelector('[data-action="open"]');
+    const writeBtn = div.querySelector('[data-action="write"]');
+
+    openBtn.addEventListener("click", () => {
       openDetailModal(r.id);
       feedModal.classList.add("hidden");
     });
+
+    writeBtn.addEventListener("click", () => {
+      focusPostEditor(`[${r.name}] 짧은 기록`);
+    });
+
     myRestaurantsListEl.appendChild(div);
   });
 }
@@ -1009,14 +1060,25 @@ function renderRecentVisitsInFeed() {
           별점 ${r.rating || "-"} · ${formatDate(r.createdAt)}${loc ? " · " + loc : ""}
         </span>
       </div>
-      <button class="text-button small" type="button">열기</button>
+      <div class="feed-log-actions">
+        <button class="text-button small" type="button" data-action="open">열기</button>
+        <button class="text-button small" type="button" data-action="write">글 쓰기</button>
+      </div>
     `;
-    div.querySelector("button").addEventListener("click", () => {
+    const openBtn = div.querySelector('[data-action="open"]');
+    const writeBtn = div.querySelector('[data-action="write"]');
+
+    openBtn.addEventListener("click", () => {
       if (rest) {
         openDetailModal(rest.id);
         feedModal.classList.add("hidden");
       }
     });
+
+    writeBtn.addEventListener("click", () => {
+      focusPostEditor(`[최근 방문] ${name}`);
+    });
+
     recentVisitsListEl.appendChild(div);
   });
 }
@@ -1197,3 +1259,20 @@ feedTabButtons.forEach((btn) => {
 });
 
 postSubmitBtn.addEventListener("click", submitPost);
+
+// 포맷팅 툴바 이벤트
+postToolbarButtons.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const action = btn.dataset.format;
+    if (!action) return;
+    if (action === "bold") {
+      insertAroundSelection(postContentInput, "**", "**", "굵게");
+    } else if (action === "divider") {
+      insertAtCursor(postContentInput, "\n\n---\n\n");
+    } else if (action === "callout") {
+      insertAtCursor(postContentInput, "\n\n> 💡 ");
+    } else if (action === "emoji") {
+      insertAtCursor(postContentInput, "😋 ");
+    }
+  });
+});
